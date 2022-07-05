@@ -30,7 +30,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(express.urlencoded({ extended: false }));
 
-app.get('/', (req, res) => res.render('index'));
+app.get('/', (req, res) => res.render('index', { user: req.user }));
 app.get('/sign-up', (req, res) => res.render('sign-up-form'));
 
 app.post("/sign-up", (req, res, next) => {
@@ -42,6 +42,34 @@ app.post("/sign-up", (req, res, next) => {
       return next(err);
     }
     res.redirect("/");
+  });
+});
+app.post('/log-in', passport.authenticate('local', { successRedirect: '/', failureRedirect: '/' }));
+
+passport.use(
+  new LocalStrategy( (username, password, done) => {
+    User.findOne( { username: username }, (err, user) => {
+      if (err) {
+        return done(err);
+      }
+      if (!user) {
+        return done(null, false, { message: 'Incorrect username' });
+      }
+      if (user.password !== password) {
+        return done(null, false, { message: 'Incorrect password' });
+      }
+      return done(null, user);
+    });
+  })
+);
+
+passport.serializeUser( function(user, done) {
+  done(null, user.id);
+});
+
+passport.deserializeUser( function(id, done) {
+  User.findById(id, function(err, user) {
+    done(err, user);
   });
 });
 
